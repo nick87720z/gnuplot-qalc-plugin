@@ -21,7 +21,7 @@
  * TODO:
  * - support more function arguments
  * - qalculate static stream processor?
- * - implement separate qalculate operations, missing in libc math
+ * - (probably) implement separate qalculate operations, missing in libc math
  *
  */
 
@@ -206,7 +206,7 @@ extern "C" {
         }
         /* skip checks for current selection */
         if (ufid == ufunc_id || ufid == -1) {
-            /* only if selection is valid */
+            /* but only if selection is valid */
             if (ufunc_id == -1) return r;
             goto ufarg_check;
         }
