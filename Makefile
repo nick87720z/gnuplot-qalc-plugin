@@ -4,6 +4,8 @@ CXXFLAGS ?= -O3
 LDFLAGS ?= -O3
 GNUPLOT ?= gnuplot
 
+LIBDIR ?= ${PREFIX}/${lib}
+
 pkgname=gnuplot-qalc-plugin
 
 CXXFLAGS += -fpic -std=c++14 -fpermissive -I"${GNUPLOT_SOURCES_DIR}"/src `pkg-config --cflags libqalculate`
@@ -12,13 +14,16 @@ OBJS = ${pkgname}.o
 
 all: ${pkgname}.so
 
-.PHONY: clean test
+.PHONY: clean test install
 
 ${pkgname}.so: ${OBJS}
 	${CC} ${LDFLAGS} -shared ${LIBS} ${pkgname}.o -o ${pkgname}.so
 
 test: ${pkgname}.so
 	${GNUPLOT} -p -c ./test_script
+
+install: ${pkgname}.so
+	install -D gnuplot-qalc-plugin.so ${DESTDIR}/${LIBDIR}
 
 clean:
 	rm -f ${OBJS} ${pkgname}.so

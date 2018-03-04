@@ -3,7 +3,11 @@ Let gnuplot to guide the qalculate.
 Note, that you need minimal gnuplot version 5 to use plugins.  
 
 ### Installation ###
-Run __make__ to build.
+You need gnuplot sources in order to compile this plugin, unless gnuplot moves necessary headers to public API and install to proper location.
+In order to install plugin, run:  
+`$ make GNUPLOT_SOURCES_DIR=<path>`  
+`$ make install PREFIX=/usr/local LIBDIR=/usr/local/lib DESTDIR=/`  
+It is not critical, where do you install plugin, but it is better to be some system path, to be not required to specify full plugin path for gnuplot command __import from__.
 
 ### Usage ###
 Warning: This is work in progress, some interface details may change in future.  
