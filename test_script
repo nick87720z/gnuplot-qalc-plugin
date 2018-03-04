@@ -1,0 +1,42 @@
+import qalc_ufunc_new(n,e)      from "gnuplot-qalc-plugin"
+import qalc_ufunc_del(fid)      from "gnuplot-qalc-plugin"
+import qalc_ufunc_list(x)       from "gnuplot-qalc-plugin"
+import qalc_ufunc_exec(fid,arg) from "gnuplot-qalc-plugin"
+print qalc_ufunc_new('f0',   '\x / 4')
+print qalc_ufunc_new('f1',   '\x^2 / 3')
+print qalc_ufunc_new('Sinus','sin(\x * radian)')
+print qalc_ufunc_new('f3',   'cos (\x * radian)^\x')
+print qalc_ufunc_new('logn',   'ln \x')
+print qalc_ufunc_new('func5','1 / \x')
+print qalc_ufunc_new('f6',   'tan (\x * radian)')
+func_list=qalc_ufunc_list(0)
+print func_list
+print func_list[1]
+print func_list[2]
+print func_list[3],func_list[4],func_list[5]
+print func_list[6],' ', func_list[7]
+print qalc_ufunc_exec(-1, 3)
+print qalc_ufunc_exec(0, 6)
+print qalc_ufunc_exec(1, 4)
+print qalc_ufunc_exec('Sinus', 4.3)
+print qalc_ufunc_exec('f3', 3.6)
+print qalc_ufunc_exec('logn', pi)
+print qalc_ufunc_exec('logn', 5.3)
+print qalc_ufunc_exec('func5', 2.5)
+print qalc_ufunc_exec(6, 2.4)
+print qalc_ufunc_del(0)
+print qalc_ufunc_del(3)
+print qalc_ufunc_del(4)
+print qalc_ufunc_list(0)
+print qalc_ufunc_del('f3')
+print qalc_ufunc_del('Sinus')
+print qalc_ufunc_list(0)
+print 6 * qalc_ufunc_exec('func5',4)
+
+print qalc_ufunc_new('f0',   '\x / 4 - 3')
+print qalc_ufunc_new('Sinus','sin(\x * radian)')
+test_parabola(x) = qalc_ufunc_exec(0, x)
+test_hyperbola(x) = qalc_ufunc_exec(1, x)
+test_line(x) = qalc_ufunc_exec(2, x)
+test_sin(x) = qalc_ufunc_exec(3, x)
+plot test_parabola(x), test_line(x), test_hyperbola(x), test_sin(x)
