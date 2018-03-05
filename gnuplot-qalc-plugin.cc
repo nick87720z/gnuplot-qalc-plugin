@@ -28,16 +28,19 @@
 #include <gp_types.h>
 #include <libqalculate/Calculator.h>
 #include <libqalculate/Function.h>
+#include <libqalculate/Variable.h>
 #include <string.h>
 #include <cstdlib>
 #include <vector>
 
 /* pool for functions, entered via gnuplot */
-vector <UserFunction * > ufunc_v;
+static vector <UserFunction * > ufunc_v;
 
 /* last selected function, for fast access */
-UserFunction * ufunc = NULL;
-int ufunc_id = -1;
+static MathStructure ufunc;
+static int ufunc_id = -1;
+
+static MathStructure v_xstruct, v_ystruct, v_zstruct, mstruct;
 
 /* calculation data */
 static EvaluationOptions eopt;
@@ -57,7 +60,7 @@ const char * ufunc_name (const UserFunction * f) {
 
 int ufunc_find (const char * name)
 {
-    if (ufunc != NULL && strcmp(ufunc_name (ufunc), name) == 0)
+    if (ufunc_id != -1 && strcmp(ufunc_name (ufunc_v [ufunc_id]), name) == 0)
         return ufunc_id;
 
     UserFunction **endp, **startp, **p;
@@ -72,6 +75,13 @@ int ufunc_find (const char * name)
     return -1;
 }
 
+void ufunc_select(int ufid)
+{
+    MathStructure vstruct = MathStructure(& mstruct, NULL);
+    ufunc_v[ufid]->calculate(ufunc, vstruct, eopt);
+    ufunc.replace(v_xstruct, mstruct);
+}
+
 extern "C" {
     void * gnuplot_init (struct value (* cb)(int, struct value *, void *))
     {
@@ -79,6 +89,10 @@ extern "C" {
             new Calculator();
             CALCULATOR->loadGlobalDefinitions();
             CALCULATOR->loadLocalDefinitions();
+            mstruct = MathStructure("x");
+            v_xstruct = MathStructure((Variable *)CALCULATOR->v_x);
+            v_ystruct = MathStructure((Variable *)CALCULATOR->v_y);
+            v_zstruct = MathStructure((Variable *)CALCULATOR->v_z);
             eopt.parse_options.angle_unit = ANGLE_UNIT_RADIANS;
 
             printf("Qalculate plugin is ready\n\n%s", help_text);
@@ -149,7 +163,7 @@ extern "C" {
         if (ufid < ufunc_id)
             ufunc_id--;
         else
-            ufunc_id = -1, ufunc = NULL;
+            ufunc_id = -1, ufunc.setUndefined(true);
 
         auto i = ufunc_v.begin();
         std::advance(i, ufid);
@@ -181,6 +195,7 @@ extern "C" {
                 ufunc_v[i]->formula().c_str() );
         }
         r.v.data_array[i_max] = NULL;
+        printf ("selected: %i\n", ufunc_id);
 
         return r;
     }
@@ -207,7 +222,7 @@ extern "C" {
                 ufunc_id = ufunc_find (arg[0].v.string_val);
                 if (ufunc_id == -1)
                     return r;
-                ufunc = ufunc_v [ufunc_id];
+                ufunc_select(ufunc_id);
                 goto ufarg_check;
             }
             case CMPLX: ufid = (int)arg[0].v.cmplx_val.real; break;
@@ -226,7 +241,7 @@ extern "C" {
             return r;
 
         ufunc_id = ufid;
-        ufunc = ufunc_v[ufid];
+        ufunc_select(ufid);
 
         ufarg_check:;
         switch (arg[1].type) {
@@ -235,11 +250,11 @@ extern "C" {
             default: return r;
         }
 
-        /* qalculation... */
-        MathStructure mstruct = MathStructure(x);
-        mstruct.transform(STRUCT_VECTOR);
-        ufunc->calculate(result, mstruct, eopt);
-        result.eval(eopt);
+        /* calculation */
+        MathStructure xstruct = MathStructure(x);
+        result = MathStructure (ufunc);
+        result.replace(mstruct, xstruct);
+        result.eval();
         y_num = result.number();
 
         /* output sorting */
