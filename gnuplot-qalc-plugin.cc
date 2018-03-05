@@ -138,7 +138,12 @@ extern "C" {
             case INTGR: ufid = arg[0].v.int_val; break;
             default: return r;
         }
-        if (ufid == -1 || ufid>=ufunc_v.size())
+        if (ufid == -1) {
+            if (ufunc_id != -1)
+                ufid == ufunc_id;
+            else
+                return r;
+        } else if (ufid>=ufunc_v.size())
             return r;
 
         /* don't forget to invalidate current selection */
