@@ -35,6 +35,7 @@ print 6 * qalc_ufunc_exec('func5',4)
 
 print qalc_ufunc_new('f0',   '\x / 4 - 3')
 print qalc_ufunc_new('Sinus','sin(\x * radian)')
+print qalc_ufunc_list(0)
 test_parabola(x) = qalc_ufunc_exec(0, x)
 test_hyperbola(x) = qalc_ufunc_exec(1, x)
 test_line(x) = qalc_ufunc_exec(2, x)
