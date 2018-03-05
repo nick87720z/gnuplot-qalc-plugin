@@ -147,8 +147,11 @@ extern "C" {
             return r;
 
         /* don't forget to invalidate current selection */
-        if (ufid == ufunc_id)
+        if (ufid < ufunc_id)
+            ufunc_id--;
+        else
             ufunc_id = -1, ufunc = NULL;
+
         auto i = ufunc_v.begin();
         std::advance(i, ufid);
         ufunc_v.erase(i);
