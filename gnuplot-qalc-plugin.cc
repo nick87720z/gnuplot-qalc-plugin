@@ -139,9 +139,8 @@ extern "C" {
             default: return r;
         }
         if (ufid == -1) {
-            if (ufunc_id != -1)
-                ufid == ufunc_id;
-            else
+            ufid = ufunc_id;
+            if (ufid == -1)
                 return r;
         } else if (ufid>=ufunc_v.size())
             return r;
