@@ -152,6 +152,9 @@ extern "C" {
         auto i = ufunc_v.begin();
         std::advance(i, ufid);
         ufunc_v.erase(i);
+
+        r.v.int_val = 0, r.type = INTGR;
+        return r;
     }
 
     /* Print function list.
