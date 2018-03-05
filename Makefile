@@ -1,7 +1,7 @@
 CC ?= gcc
 CXX ?= g++
 CXXFLAGS ?= -O3
-LDFLAGS ?= -O3
+LDFLAGS ?= ${CXXFLAGS}
 GNUPLOT ?= gnuplot
 
 LIBDIR ?= ${PREFIX}/${lib}
