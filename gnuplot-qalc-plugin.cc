@@ -275,7 +275,7 @@ extern "C" {
         MathStructure xstruct = MathStructure(x);
         result = MathStructure (ufunc);
         result.replace(mstruct, xstruct);
-        result.eval();
+        result.eval(eopt);
         y_num = result.number();
 
         /* output sorting */
