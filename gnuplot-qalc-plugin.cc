@@ -171,6 +171,7 @@ extern "C" {
             ufunc.calculate(*mstruct, args_v, eopt);
             mstruct->replace(v_xstruct, *(symstruct[0]));
             mstruct->factorize(eopt);
+            mstruct->eval(eopt);
             mstruct->simplify(eopt);
 
             ufunc_v.push_back (mstruct);
