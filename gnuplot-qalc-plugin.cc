@@ -186,6 +186,7 @@ extern "C" {
 
         auto i = ufunc_v.begin();
         std::advance(i, ufid);
+        delete ufunc_v[ufid];
         ufunc_v.erase(i);
 
         r.v.int_val = 0, r.type = INTGR;
@@ -209,7 +210,7 @@ extern "C" {
 
         for (; i < i_max; i++)
         {
-            r.v.data_array[i] = strdup( ufunc_name (ufunc_v[i]) );
+            r.v.data_array[i] = (char *)ufunc_name (ufunc_v[i]);
             printf ("%zi. %s:\t%s\n", i,
                 r.v.data_array[i],
                 ufunc_v[i]->formula().c_str() );
