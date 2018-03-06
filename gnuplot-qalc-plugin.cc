@@ -165,8 +165,7 @@ extern "C" {
             /* if not, create new one */
             MathStructure * mstruct = new MathStructure();
             UserFunction ufunc ("", "", arg[1].v.string_val);
-            MathStructure xarg = MathStructure("x");
-            MathStructure args_v (& xarg, NULL);
+            MathStructure args_v (symstruct[0], NULL);
 
             //~ mstruct = MathStructure();
             ufunc.calculate(*mstruct, args_v, eopt);
