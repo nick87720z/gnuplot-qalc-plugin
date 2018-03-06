@@ -34,13 +34,17 @@
 #include <vector>
 
 /* pool for functions, entered via gnuplot */
-static vector <UserFunction * > ufunc_v;
+static vector <MathStructure * > ufunc_v;
+static vector <char * > ufunc_names;
 
 /* last selected function, for fast access */
-static MathStructure ufunc;
+static MathStructure * ufunc = NULL;
 static int ufunc_id = -1;
 
-static MathStructure v_xstruct, v_ystruct, v_zstruct, mstruct;
+/* symbolic variable pool */
+static char symch_v[] = "xyzabcdefghijklmnopqrstuvw";
+static MathStructure * symstruct [26];
+static MathStructure v_xstruct, v_ystruct, v_zstruct;
 
 /* calculation data */
 static EvaluationOptions eopt;
@@ -55,47 +59,44 @@ static const char help_text[] =
 
 static bool initialized = false;
 
-static inline
-const char * ufunc_name (const UserFunction * f) {
-    return ((ExpressionItem *)f)->getName(1).name.c_str();
-}
-
 int ufunc_find (const char * name)
 {
-    if (ufunc_id != -1 && strcmp(ufunc_name (ufunc_v [ufunc_id]), name) == 0)
+    if (ufunc_id != -1 && strcmp(ufunc_names [ufunc_id], name) == 0)
         return ufunc_id;
 
-    UserFunction **endp, **startp, **p;
-    startp=endp=p = ufunc_v.data();
-    endp += ufunc_v.size();
-    for(; p < endp; p++ ) {
-        if (strcmp(ufunc_name (*p), name)==0)
-        {
-            return p - startp;
-        }
+    for (auto p = ufunc_names.begin(), endp = ufunc_names.end(); p != endp; p++)
+    {
+        if (strcmp(*p, name)==0)
+            return p - ufunc_names.begin();
     }
     return -1;
-}
-
-void ufunc_select(int ufid)
-{
-    MathStructure vstruct = MathStructure(& mstruct, NULL);
-    ufunc_v[ufid]->calculate(ufunc, vstruct, eopt);
-    ufunc.replace(v_xstruct, mstruct);
 }
 
 extern "C" {
     void * gnuplot_init (struct value (* cb)(int, struct value *, void *))
     {
         if (! CALCULATOR) {
+            eopt.parse_options.angle_unit = ANGLE_UNIT_RADIANS;
+
             new Calculator();
             CALCULATOR->loadGlobalDefinitions();
             CALCULATOR->loadLocalDefinitions();
-            mstruct = MathStructure("x");
             v_xstruct = MathStructure((Variable *)CALCULATOR->v_x);
             v_ystruct = MathStructure((Variable *)CALCULATOR->v_y);
             v_zstruct = MathStructure((Variable *)CALCULATOR->v_z);
-            eopt.parse_options.angle_unit = ANGLE_UNIT_RADIANS;
+
+            /* Pre-fill symbol math structures */
+            char symch [2] = {'0', '\0'};
+            char * symp, * symp_end;
+            MathStructure ** symsp;
+
+            symp_end = (symp = symch_v) + sizeof(symch_v)/sizeof(char);
+            symsp = (MathStructure **)symstruct;
+            for (; symp < symp_end; symp++, symsp++)
+            {
+                symch[0] = *symp;
+                *symsp = new MathStructure (symch);
+            }
 
             printf("Qalculate plugin is ready\n\n%s", help_text);
 
@@ -114,12 +115,22 @@ extern "C" {
         struct value r = { .type=INTGR };
         r.v.int_val = 0;
 
-        printf("fini\n");
-        for (auto i = ufunc_v.end(); i == ufunc_v.begin() ; )
+        printf("Qalculate gnuplot plugin is finishing\n");
+        //~ for (auto i = ufunc_v.end(); i == ufunc_v.begin() ; )
+        //~ {
+            //~ i--;
+            //~ ufunc_v.erase(i);
+        //~ }
         {
-            i--;
-            ufunc_v.erase(i);
+            auto p = symstruct;
+            auto endp = symstruct;
+            endp += sizeof(symstruct)/sizeof(*symstruct);
+            for(; p != endp; p++)
+                delete *p;
         }
+
+        ufunc_v.clear();
+        ufunc_names.clear();
         initialized = false;
         return r;
     }
@@ -131,7 +142,6 @@ extern "C" {
     {
         struct value r = { .type=INVALID_VALUE };
         int ufid = -1;
-        UserFunction * ufp = NULL;
         if (!initialized) return r;
 
         /* check argument types */
@@ -146,8 +156,17 @@ extern "C" {
         ufid = ufunc_find (arg[0].v.string_val);
         if (ufid == -1) {
             /* if not, create new one */
-            ufp = new UserFunction("custom", arg[0].v.string_val, arg[1].v.string_val);
-            ufunc_v.push_back (ufp);
+            MathStructure * mstruct = new MathStructure();
+            UserFunction ufunc ("", "", arg[1].v.string_val);
+            MathStructure xarg = MathStructure("x");
+            MathStructure args_v (& xarg, NULL);
+
+            //~ mstruct = MathStructure();
+            ufunc.calculate(*mstruct, args_v, eopt);
+            mstruct->replace(v_xstruct, *(symstruct[0]));
+
+            ufunc_v.push_back (mstruct);
+            ufunc_names.push_back (strdup(arg[0].v.string_val));
             ufid = ufunc_v.size() - 1;
         }
         r.v.int_val = ufid, r.type = INTGR;
@@ -182,12 +201,19 @@ extern "C" {
         if (ufid < ufunc_id)
             ufunc_id--;
         else
-            ufunc_id = -1, ufunc.setUndefined(true);
+            ufunc_id = -1, ufunc = NULL;
 
-        auto i = ufunc_v.begin();
-        std::advance(i, ufid);
-        delete ufunc_v[ufid];
-        ufunc_v.erase(i);
+        {
+            auto i = ufunc_v.begin();
+            std::advance(i, ufid);
+            delete ufunc_v[ufid];
+            ufunc_v.erase(i);
+        }{
+            auto i = ufunc_names.begin();
+            std::advance(i, ufid);
+            delete ufunc_names[ufid];
+            ufunc_names.erase(i);
+        }
 
         r.v.int_val = 0, r.type = INTGR;
         return r;
@@ -210,10 +236,10 @@ extern "C" {
 
         for (; i < i_max; i++)
         {
-            r.v.data_array[i] = (char *)ufunc_name (ufunc_v[i]);
+            r.v.data_array[i] = (char *)ufunc_names[i];
             printf ("%zi. %s:\t%s\n", i,
                 r.v.data_array[i],
-                ufunc_v[i]->formula().c_str() );
+                ufunc_v[i]->print().c_str() );
         }
         r.v.data_array[i_max] = NULL;
         printf ("selected: %i\n", ufunc_id);
@@ -238,13 +264,13 @@ extern "C" {
         if (nargs != 2)
             return r;
 
-        /* prepare user function */
+        /* prepare function */
         switch (arg[0].type) {
             case STRING: {
                 ufunc_id = ufunc_find (arg[0].v.string_val);
                 if (ufunc_id == -1)
                     return r;
-                ufunc_select(ufunc_id);
+                ufunc = ufunc_v[ufunc_id];
                 goto ufarg_check;
             }
             case CMPLX: ufid = (int)arg[0].v.cmplx_val.real; break;
@@ -258,12 +284,12 @@ extern "C" {
             goto ufarg_check;
         }
 
-        /* check if ufid in range */
+        /* abort if ufid out of range */
         if (ufid >= ufunc_v.size())
             return r;
 
         ufunc_id = ufid;
-        ufunc_select(ufid);
+        ufunc = ufunc_v[ufunc_id];
 
         ufarg_check:;
         switch (arg[1].type) {
@@ -274,8 +300,8 @@ extern "C" {
 
         /* calculation */
         MathStructure xstruct = MathStructure(x);
-        result = MathStructure (ufunc);
-        result.replace(mstruct, xstruct);
+        result = MathStructure (*ufunc);
+        result.replace((*symstruct)[0], xstruct);
         result.eval(eopt);
         y_num = result.number();
 
