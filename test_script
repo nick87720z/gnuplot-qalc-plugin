@@ -2,6 +2,7 @@ import qalc_ufunc_new(n,e)      from "gnuplot-qalc-plugin"
 import qalc_ufunc_del(fid)      from "gnuplot-qalc-plugin"
 import qalc_ufunc_list(x)       from "gnuplot-qalc-plugin"
 import qalc_ufunc_exec(fid,arg) from "gnuplot-qalc-plugin"
+import qalc_fini(x)             from "gnuplot-qalc-plugin"
 print qalc_ufunc_new('f0',   '\x / 4')
 print qalc_ufunc_new('f1',   '\x^2 / 3')
 print qalc_ufunc_new('Sinus','sin(\x * radian)')
@@ -41,3 +42,5 @@ test_hyperbola(x) = qalc_ufunc_exec(1, x)
 test_line(x) = qalc_ufunc_exec(2, x)
 test_sin(x) = qalc_ufunc_exec(3, x)
 plot test_parabola(x), test_line(x), test_hyperbola(x), test_sin(x)
+
+print qalc_fini(0)

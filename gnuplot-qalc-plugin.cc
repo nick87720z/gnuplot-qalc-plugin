@@ -53,6 +53,8 @@ static const char help_text[] =
 "- qalc_ufunc_list()\n"
 "- qalc_ufunc_exec(fid, arg)\n";
 
+static bool initialized = false;
+
 static inline
 const char * ufunc_name (const UserFunction * f) {
     return ((ExpressionItem *)f)->getName(1).name.c_str();
@@ -96,16 +98,30 @@ extern "C" {
             eopt.parse_options.angle_unit = ANGLE_UNIT_RADIANS;
 
             printf("Qalculate plugin is ready\n\n%s", help_text);
-            /* TODO: print list of available functions */
+
+            initialized = true;
         }
     }
 
     void gnuplot_fini (void *)
     {
-        cout << "fini\n";
-        //~ int i = ufunc_v.size();
-        ufunc_v.clear();
-        delete CALCULATOR;
+        printf("!!! This message is not supposed to appear due to some gnuplot bug. If you got it, please let me know.\n");
+    }
+
+    /* By some reason gnuplot_fini() is not invoked by gnuplot */
+    struct value qalc_fini (int nargs, struct value *arg, void *p)
+    {
+        struct value r = { .type=INTGR };
+        r.v.int_val = 0;
+
+        printf("fini\n");
+        for (auto i = ufunc_v.end(); i == ufunc_v.begin() ; )
+        {
+            i--;
+            ufunc_v.erase(i);
+        }
+        initialized = false;
+        return r;
     }
 
     /* Create new function.
@@ -116,6 +132,7 @@ extern "C" {
         struct value r = { .type=INVALID_VALUE };
         int ufid = -1;
         UserFunction * ufp = NULL;
+        if (!initialized) return r;
 
         /* check argument types */
         if (nargs != 2)
@@ -144,6 +161,8 @@ extern "C" {
     {
         struct value r = { .type=INVALID_VALUE };
         int ufid = -1;
+        if (!initialized) return r;
+
         if (nargs != 1)
             return r;
         switch (arg[0].type) {
@@ -180,6 +199,7 @@ extern "C" {
     {
         struct value r = { .type=DATABLOCK, .v={ .data_array=NULL } };
         size_t i=0, i_max=0;
+        if (!initialized) return r;
 
         if (ufunc_v.empty())
             return r;
@@ -211,6 +231,7 @@ extern "C" {
         Number y_num, y_imag;
         struct value r = { .type=INVALID_VALUE };
         int ufid = -1;
+        if (!initialized) return r;
 
         /* parse arguments */
         if (nargs != 2)
