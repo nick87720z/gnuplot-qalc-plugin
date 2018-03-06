@@ -246,7 +246,7 @@ extern "C" {
         for (; i < i_max; i++)
         {
             r.v.data_array[i] = (char *)ufunc_names[i];
-            printf ("%zi. %s:\t%s\n", i,
+            printf ("%zi. %s(x) = %s\n", i,
                 r.v.data_array[i],
                 ufunc_v[i]->print().c_str() );
         }
