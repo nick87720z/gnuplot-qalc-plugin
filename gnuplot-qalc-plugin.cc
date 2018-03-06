@@ -104,16 +104,12 @@ extern "C" {
         }
     }
 
-    void gnuplot_fini (void *)
-    {
-        printf("!!! This message is not supposed to appear due to some gnuplot bug. If you got it, please let me know.\n");
-    }
-
     /* By some reason gnuplot_fini() is not invoked by gnuplot */
     struct value qalc_fini (int nargs, struct value *arg, void *p)
     {
         struct value r = { .type=INTGR };
         r.v.int_val = 0;
+        if (!initialized) return r;
 
         printf("Qalculate gnuplot plugin is finishing\n");
         //~ for (auto i = ufunc_v.end(); i == ufunc_v.begin() ; )
@@ -133,6 +129,17 @@ extern "C" {
         ufunc_names.clear();
         initialized = false;
         return r;
+    }
+
+    void gnuplot_fini (void *)
+    {
+        printf( "╭───╮\n"
+                "│┃┃┃│ This message is not supposed to appear due to some gnuplot bug. If"
+                " you see it, please let me know.\n"
+                "│▪▪▪│ By some reason gnuplot did not finalize plugin on termination, due"
+                " to what this must be done manually before to quit gnuplot.\n"
+                "╰───╯ (in two words, you don't need to run \"qalc_fini\" anymore.)\n" );
+        qalc_fini(0, NULL, NULL);
     }
 
     /* Create new function.
