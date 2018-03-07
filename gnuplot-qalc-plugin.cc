@@ -51,6 +51,7 @@ static MathStructure v_xstruct, v_ystruct, v_zstruct;
 /* calculation data */
 static EvaluationOptions eopt;
 static MathStructure result;
+static vector <MathStructure> argstruct_v;
 
 static const char help_text[] =
 "Available functions:\n"
@@ -339,7 +340,13 @@ extern "C" {
         nargs = ufunc_argn[ufid];
 
         /* check, is it single value */
-        MathStructure argstruct_v[nargs];
+        //~ MathStructure argstruct_v[nargs];
+        int argstruct_v_allocated = argstruct_v.size();
+        if (argstruct_v_allocated < nargs)
+        {
+            for(int i = nargs - argstruct_v_allocated; i != 0; i--)
+                argstruct_v.emplace_back(0.0);
+        }
         if (arg[1].type != ARRAY)
         {
             switch (arg[1].type) {
@@ -347,7 +354,7 @@ extern "C" {
                 case INTGR: x = arg[1].v.int_val; break;
                 default: return r;
             }
-            argstruct_v[0] = MathStructure(x);
+            argstruct_v[0].set(x);
             goto calculation;
         }
 
@@ -362,7 +369,7 @@ extern "C" {
                 case INTGR: x = fargs[i].v.int_val; break;
                 default: return r;
             }
-            argstruct_v[i] = MathStructure(x);
+            argstruct_v[i].set(x);
         }
 
         /* calculation */
