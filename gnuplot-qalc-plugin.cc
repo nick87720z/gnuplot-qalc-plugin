@@ -36,6 +36,7 @@
 /* pool for functions, entered via gnuplot */
 static vector <MathStructure * > ufunc_v;
 static vector <char * > ufunc_names;
+static vector <unsigned> ufunc_argn;
 
 /* last selected function, for fast access */
 static MathStructure * ufunc = NULL;
@@ -198,6 +199,7 @@ extern "C" {
             }
             mstruct->eval(eopt);
 
+            ufunc_argn.push_back (unknowns_n);
             ufunc_v.push_back (mstruct);
             ufunc_names.push_back (strdup(arg[0].v.string_val));
             ufid = ufunc_v.size() - 1;
@@ -246,6 +248,10 @@ extern "C" {
             std::advance(i, ufid);
             delete ufunc_names[ufid];
             ufunc_names.erase(i);
+        }{
+            auto i = ufunc_argn.begin();
+            std::advance(i, ufid);
+            ufunc_argn.erase(i);
         }
 
         r.v.int_val = 0, r.type = INTGR;
@@ -270,9 +276,12 @@ extern "C" {
         for (; i < i_max; i++)
         {
             r.v.data_array[i] = (char *)ufunc_names[i];
-            printf ("%zi. %s(x) = %s\n", i,
-                r.v.data_array[i],
-                ufunc_v[i]->print().c_str() );
+            printf ("%zi. %s(", i, r.v.data_array[i]);
+            if (ufunc_argn[i] > 0)
+                printf("%c", symch_v[0]);
+            for (int a = 1; a < ufunc_argn[i]; a++)
+                printf(",%c", symch_v[a]);
+            printf (") = %s\n", ufunc_v[i]->print().c_str() );
         }
         r.v.data_array[i_max] = NULL;
         printf ("selected: %i\n", ufunc_id);
@@ -303,19 +312,21 @@ extern "C" {
                 ufunc_id = ufunc_find (arg[0].v.string_val);
                 if (ufunc_id == -1)
                     return r;
+                ufid = ufunc_id;
                 ufunc = ufunc_v[ufunc_id];
-                goto ufarg_check;
+                goto arg2_check;
             }
             case CMPLX: ufid = (int)arg[0].v.cmplx_val.real; break;
             case INTGR: ufid = arg[0].v.int_val; break;
             default: return r;
         }
         /* skip checks for current selection */
-        if (ufid == ufunc_id || ufid == -1) {
-            /* but only if selection is valid */
-            if (ufunc_id == -1) return r;
-            goto ufarg_check;
-        }
+        if (ufid == -1) {
+            if (ufunc_id == -1)
+                return r;
+            goto arg2_check;
+        } else if (ufid == ufunc_id)
+            goto arg2_check;
 
         /* abort if ufid out of range */
         if (ufid >= ufunc_v.size())
@@ -324,17 +335,44 @@ extern "C" {
         ufunc_id = ufid;
         ufunc = ufunc_v[ufunc_id];
 
-        ufarg_check:;
-        switch (arg[1].type) {
-            case CMPLX: x = arg[1].v.cmplx_val.real; break;
-            case INTGR: x = arg[1].v.int_val; break;
-            default: return r;
+        arg2_check:;
+        nargs = ufunc_argn[ufid];
+
+        /* check, is it single value */
+        MathStructure argstruct_v[nargs];
+        if (arg[1].type != ARRAY)
+        {
+            switch (arg[1].type) {
+                case CMPLX: x = arg[1].v.cmplx_val.real; break;
+                case INTGR: x = arg[1].v.int_val; break;
+                default: return r;
+            }
+            argstruct_v[0] = MathStructure(x);
+            goto calculation;
+        }
+
+        /* extract arguments from array
+         * FIXME: find a way to pass arrays to function in gnuplot
+         * or other means of variadic arguments */
+        struct value * fargs = arg[1].v.value_array;
+        for (int i = 0; i != nargs; i++)
+        {
+            switch (fargs[i].type) {
+                case CMPLX: x = fargs[i].v.cmplx_val.real; break;
+                case INTGR: x = fargs[i].v.int_val; break;
+                default: return r;
+            }
+            argstruct_v[i] = MathStructure(x);
         }
 
         /* calculation */
-        MathStructure xstruct = MathStructure(x);
+        calculation:;
         result = MathStructure (*ufunc);
-        result.replace((*symstruct)[0], xstruct);
+        for (int i = nargs; i != 0; )
+        {
+            i--;
+            result.replace((*symstruct)[i], argstruct_v[i]);
+        }
         result.eval(eopt);
         y_num = result.number();
 

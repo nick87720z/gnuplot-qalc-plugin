@@ -37,7 +37,11 @@ print "Using non-backslashed unknown's style."
 fnum=qalc_ufunc_new('no_bs_test','x^4 / cos(x radian)')
 func_list=qalc_ufunc_list(0)
 print "result: ", qalc_ufunc_exec(fnum, 2.45)
-print qalc_ufunc_del('no_bs_test')
+print qalc_ufunc_del(fnum)
+fnum = qalc_ufunc_new('f5',   'cos (x * radian)^"a" + z/"b"')
+func_list=qalc_ufunc_list(0)
+# print qalc_ufunc_exec('f5', [1,8,2,4])
+print qalc_ufunc_del(fnum)
 
 print qalc_ufunc_new('f0',   '\x / 4 - 3')
 print qalc_ufunc_new('Sinus','sin(\x * radian)')
