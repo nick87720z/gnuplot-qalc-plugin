@@ -44,6 +44,7 @@ static int ufunc_id = -1;
 /* symbolic variable pool */
 static char symch_v[] = "xyzabcdefghijklmnopqrstu";
 static MathStructure * symstruct [26];
+static MathStructure symvector;
 static MathStructure v_xstruct, v_ystruct, v_zstruct;
 
 /* calculation data */
@@ -81,21 +82,24 @@ extern "C" {
             new Calculator();
             CALCULATOR->loadGlobalDefinitions();
             CALCULATOR->loadLocalDefinitions();
+
+            /* Pre-fill symbol math structures */
             v_xstruct = MathStructure((Variable *)CALCULATOR->v_x);
             v_ystruct = MathStructure((Variable *)CALCULATOR->v_y);
             v_zstruct = MathStructure((Variable *)CALCULATOR->v_z);
 
-            /* Pre-fill symbol math structures */
             char symch [2] = {'0', '\0'};
             char * symp, * symp_end;
             MathStructure ** symsp;
 
-            symp_end = (symp = symch_v) + sizeof(symch_v)/sizeof(char);
+            symp_end = (symp = symch_v) + sizeof(symch_v)/sizeof(*symch_v);
             symsp = (MathStructure **)symstruct;
+            symvector.setVector(symstruct[0]);
             for (; symp < symp_end; symp++, symsp++)
             {
                 symch[0] = *symp;
                 *symsp = new MathStructure (symch);
+                symvector.addChild(**symsp);
             }
 
             printf("Qalculate plugin is ready\n\n%s", help_text);
@@ -165,10 +169,30 @@ extern "C" {
             /* if not, create new one */
             MathStructure * mstruct = new MathStructure();
             UserFunction ufunc ("", "", arg[1].v.string_val);
-            MathStructure args_v (symstruct[0], NULL);
 
-            ufunc.calculate(*mstruct, args_v, eopt);
+            ufunc.calculate(*mstruct, symvector, eopt);
             mstruct->replace(v_xstruct, *(symstruct[0]));
+            mstruct->replace(v_ystruct, *(symstruct[1]));
+            mstruct->replace(v_zstruct, *(symstruct[2]));
+            mstruct->eval(eopt);
+
+            /* replace symbols, taking replacement from begining of pool in same order */
+            MathStructure unknowns;
+            mstruct->findAllUnknowns(unknowns);
+            int unknowns_n = unknowns.size();
+            char unknowns_str[unknowns_n + 1] = {' ',' ',' ',' ','\0'};
+            for(int i = 0; i < unknowns_n; i++)
+                unknowns_str[i] = unknowns[i].symbol().c_str()[0];
+
+            char * p = symch_v;
+            for(int i = 0; i != unknowns_n; p++)
+            {
+                char * ch = strchr (unknowns_str, *p);
+                if (ch != NULL) {
+                    mstruct->replace(unknowns[ch - unknowns_str], *(symstruct[i]));
+                    i++;
+                }
+            }
             mstruct->eval(eopt);
 
             ufunc_v.push_back (mstruct);
