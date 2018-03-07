@@ -42,7 +42,7 @@ static MathStructure * ufunc = NULL;
 static int ufunc_id = -1;
 
 /* symbolic variable pool */
-static char symch_v[] = "xyzabcdefghijklmnopqrstuvw";
+static char symch_v[] = "xyzabcdefghijklmnopqrstu";
 static MathStructure * symstruct [26];
 static MathStructure v_xstruct, v_ystruct, v_zstruct;
 
