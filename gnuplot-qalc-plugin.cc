@@ -73,6 +73,8 @@ int ufunc_find (const char * name)
     return -1;
 }
 
+static void * gnuplot_cb;
+
 extern "C" {
     void * gnuplot_init (struct value (* cb)(int, struct value *, void *))
     {
@@ -132,6 +134,7 @@ extern "C" {
         ufunc_v.clear();
         ufunc_names.clear();
         initialized = false;
+        free (gnuplot_cb);
         return r;
     }
 
