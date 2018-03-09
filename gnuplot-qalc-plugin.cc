@@ -304,7 +304,7 @@ extern "C" {
         if (!initialized) return r;
 
         /* parse arguments */
-        if (nargs != 2)
+        if (nargs < 2)
             return r;
 
         /* prepare function */
@@ -336,32 +336,41 @@ extern "C" {
         ufunc_id = ufid;
         ufunc = ufunc_v[ufunc_id];
 
+        /* Two possible variants of math arguments. If first element is array
+         * - it is checked. Otherwise, they are treated as variadic
+         */
         arg2_check:;
         nargs = ufunc_argn[ufid];
+        if (nargs < ufunc_argn[ufid])
+            return r;
+        struct value * fargs;
 
-        /* check, is it single value */
-        //~ MathStructure argstruct_v[nargs];
+        /* keep enough space for arguments */
         int argstruct_v_allocated = argstruct_v.size();
         if (argstruct_v_allocated < nargs)
         {
             for(int i = nargs - argstruct_v_allocated; i != 0; i--)
                 argstruct_v.emplace_back(0.0);
         }
+
+        /* variadic */
         if (arg[1].type != ARRAY)
         {
-            switch (arg[1].type) {
-                case CMPLX: x = arg[1].v.cmplx_val.real; break;
-                case INTGR: x = arg[1].v.int_val; break;
-                default: return r;
+            fargs = arg + 1;
+            for (int i = 0; i != nargs; i++)
+            {
+                switch (fargs[i].type) {
+                    case CMPLX: x = fargs[i].v.cmplx_val.real; break;
+                    case INTGR: x = fargs[i].v.int_val; break;
+                    default: return r;
+                }
+                argstruct_v[i].set(x);
             }
-            argstruct_v[0].set(x);
             goto calculation;
         }
 
-        /* extract arguments from array
-         * FIXME: find a way to pass arrays to function in gnuplot
-         * or other means of variadic arguments */
-        struct value * fargs = arg[1].v.value_array;
+        /* array */
+        fargs = arg[1].v.value_array;
         for (int i = 0; i != nargs; i++)
         {
             switch (fargs[i].type) {
