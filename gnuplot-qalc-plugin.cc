@@ -384,10 +384,9 @@ extern "C" {
         /* calculation */
         calculation:;
         result = MathStructure (*ufunc);
-        for (int i = nargs; i != 0; )
+        for (int i = 0; i != nargs; i++)
         {
-            i--;
-            result.replace((*symstruct)[i], argstruct_v[i]);
+            result.replace(* symstruct[i], argstruct_v[i]);
         }
         result.eval(eopt);
         y_num = result.number();
