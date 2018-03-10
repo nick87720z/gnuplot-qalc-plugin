@@ -51,6 +51,7 @@ static MathStructure v_xstruct, v_ystruct, v_zstruct;
 /* calculation data */
 static EvaluationOptions eopt;
 static MathStructure result;
+static Number y_num, y_imag;
 static vector <MathStructure> argstruct_v;
 
 static const char help_text[] =
@@ -135,6 +136,7 @@ extern "C" {
 
         ufunc_v.clear();
         ufunc_names.clear();
+        argstruct_v.clear();
         initialized = false;
         free (gnuplot_cb);
         return r;
@@ -298,7 +300,6 @@ extern "C" {
     {
         /* initial state */
         double x=0.0, y=0.0;
-        Number y_num, y_imag;
         struct value r = { .type=INVALID_VALUE };
         int ufid = -1;
         if (!initialized) return r;
@@ -339,38 +340,27 @@ extern "C" {
         /* Two possible variants of math arguments. If first element is array
          * - it is checked. Otherwise, they are treated as variadic
          */
-        arg2_check:;
-        nargs = ufunc_argn[ufid];
-        if (nargs < ufunc_argn[ufid])
-            return r;
+        arg2_check: nargs--;
         struct value * fargs;
+        bool use_array = (arg[1].type == ARRAY);
+        int f_nargs = use_array ? ((arg[1].v.value_array[0].type == INTGR)? arg[1].v.value_array[0].v.int_val:0) : ufunc_argn[ufid];
+        if (nargs < f_nargs)
+            return r;
+        nargs = f_nargs;
 
-        /* keep enough space for arguments */
+
+        /* extend space for argument structs, if we get more or them, then earlier */
         int argstruct_v_allocated = argstruct_v.size();
         if (argstruct_v_allocated < nargs)
         {
             for(int i = nargs - argstruct_v_allocated; i != 0; i--)
-                argstruct_v.emplace_back(0.0);
-        }
-
-        /* variadic */
-        if (arg[1].type != ARRAY)
-        {
-            fargs = arg + 1;
-            for (int i = 0; i != nargs; i++)
             {
-                switch (fargs[i].type) {
-                    case CMPLX: x = fargs[i].v.cmplx_val.real; break;
-                    case INTGR: x = fargs[i].v.int_val; break;
-                    default: return r;
-                }
-                argstruct_v[i].set(x);
+                argstruct_v.emplace_back(0.0);
             }
-            goto calculation;
         }
 
-        /* array */
-        fargs = arg[1].v.value_array;
+        /* initialize argument structs */
+        fargs = (use_array ? arg[1].v.value_array : arg) + 1;
         for (int i = 0; i != nargs; i++)
         {
             switch (fargs[i].type) {
@@ -378,16 +368,13 @@ extern "C" {
                 case INTGR: x = fargs[i].v.int_val; break;
                 default: return r;
             }
-            argstruct_v[i].set(x);
+            argstruct_v[i].number().setFloat(x);
         }
 
         /* calculation */
-        calculation:;
         result = MathStructure (*ufunc);
         for (int i = 0; i != nargs; i++)
-        {
             result.replace(* symstruct[i], argstruct_v[i]);
-        }
         result.eval(eopt);
         y_num = result.number();
 
