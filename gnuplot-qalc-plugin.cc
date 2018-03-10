@@ -31,12 +31,13 @@
 #include <libqalculate/Variable.h>
 #include <string.h>
 #include <cstdlib>
+#include <cstdint>
 #include <vector>
 
 /* pool for functions, entered via gnuplot */
 static vector <MathStructure * > ufunc_v;
 static vector <char * > ufunc_names;
-static vector <unsigned> ufunc_argn;
+static vector <int> ufunc_argn;
 
 /* last selected function, for fast access */
 static MathStructure * ufunc = NULL;
@@ -63,7 +64,28 @@ static const char help_text[] =
 
 static bool initialized = false;
 
-int ufunc_find (const char * name)
+static inline bool intmore (signed s, unsigned u) {
+    if (s < 0 || u > (unsigned)INT_MAX) return false;
+    return (s > (signed)u);
+}
+static inline bool intless (signed s, unsigned u) {
+    if (s < 0 || u > (unsigned)INT_MAX) return true;
+    return (s < (signed)u);
+}
+static inline bool inteq (signed s, unsigned u) {
+    if (s < 0 || u > (unsigned)INT_MAX) return false;
+    return (s == (signed)u);
+}
+static inline bool intmoreeq (signed s, unsigned u) {
+    if (s < 0 || u > (unsigned)INT_MAX) return false;
+    return (s >= (signed)u);
+}
+static inline bool intlesseq (signed s, unsigned u) {
+    if (s < 0 || u > (unsigned)INT_MAX) return true;
+    return (s <= (signed)u);
+}
+
+static int ufunc_find (const char * name)
 {
     if (ufunc_id != -1 && strcmp(ufunc_names [ufunc_id], name) == 0)
         return ufunc_id;
@@ -75,8 +97,6 @@ int ufunc_find (const char * name)
     }
     return -1;
 }
-
-static void * gnuplot_cb;
 
 extern "C" {
     void * gnuplot_init (struct value (* cb)(int, struct value *, void *))
@@ -111,6 +131,7 @@ extern "C" {
 
             initialized = true;
         }
+        return NULL;
     }
 
     /* By some reason gnuplot_fini() is not invoked by gnuplot */
@@ -121,24 +142,16 @@ extern "C" {
         if (!initialized) return r;
 
         printf("Qalculate gnuplot plugin is finishing\n");
-        //~ for (auto i = ufunc_v.end(); i == ufunc_v.begin() ; )
-        //~ {
-            //~ i--;
-            //~ ufunc_v.erase(i);
-        //~ }
-        {
-            auto p = symstruct;
-            auto endp = symstruct;
-            endp += sizeof(symstruct)/sizeof(*symstruct);
-            for(; p != endp; p++)
-                delete *p;
-        }
+        auto i = symstruct;
+        auto endp = symstruct;
+        endp += sizeof(symstruct)/sizeof(*symstruct);
+        for(; i != endp; i++)
+            delete *i;
 
         ufunc_v.clear();
         ufunc_names.clear();
         argstruct_v.clear();
         initialized = false;
-        free (gnuplot_cb);
         return r;
     }
 
@@ -232,7 +245,7 @@ extern "C" {
             ufid = ufunc_id;
             if (ufid == -1)
                 return r;
-        } else if (ufid>=ufunc_v.size())
+        } else if (intmoreeq (ufid, ufunc_v.size()))
             return r;
 
         /* don't forget to invalidate current selection */
@@ -299,7 +312,7 @@ extern "C" {
     struct value qalc_ufunc_exec (int nargs, struct value *arg, void *p)
     {
         /* initial state */
-        double x=0.0, y=0.0;
+        double x=0.0;
         struct value r = { .type=INVALID_VALUE };
         int ufid = -1;
         if (!initialized) return r;
@@ -331,7 +344,7 @@ extern "C" {
             goto arg2_check;
 
         /* abort if ufid out of range */
-        if (ufid >= ufunc_v.size())
+        if (intmoreeq(ufid, ufunc_v.size()))
             return r;
 
         ufunc_id = ufid;

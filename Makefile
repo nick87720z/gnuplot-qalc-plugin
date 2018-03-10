@@ -8,7 +8,7 @@ LIBDIR ?= ${PREFIX}/${lib}
 
 pkgname=gnuplot-qalc-plugin
 
-CXXFLAGS += -fpic -std=c++14 -fpermissive -I"${GNUPLOT_SOURCES_DIR}"/src `pkg-config --cflags libqalculate`
+CXXFLAGS += -Wall -fpic -std=c++14 -fpermissive -I"${GNUPLOT_SOURCES_DIR}"/src `pkg-config --cflags libqalculate`
 LIBS = -lstdc++ `pkg-config --libs libqalculate`
 OBJS = ${pkgname}.o
 
