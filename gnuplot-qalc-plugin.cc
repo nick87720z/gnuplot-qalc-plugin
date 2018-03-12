@@ -200,7 +200,7 @@ extern "C" {
             MathStructure unknowns;
             mstruct->findAllUnknowns(unknowns);
             int unknowns_n = unknowns.size();
-            char unknowns_str[unknowns_n + 1] = {' ',' ',' ',' ','\0'};
+            char unknowns_str[unknowns_n + 1] = {'\0'};
             for(int i = 0; i < unknowns_n; i++)
                 unknowns_str[i] = unknowns[i].symbol().c_str()[0];
 
@@ -386,9 +386,18 @@ extern "C" {
 
         /* calculation */
         result = MathStructure (*ufunc);
-        for (int i = 0; i != nargs; i++)
-            result.replace(* symstruct[i], argstruct_v[i]);
-        result.eval(eopt);
+        {
+            int i;
+            if (nargs == 1) {
+                result.replace(* symstruct[0], argstruct_v[0]);
+                goto eval;
+            }
+            if ((i = nargs % 2) == 1)
+                result.replace(* symstruct[0], argstruct_v[0]);
+            for (int i = 0; i != nargs; i += 2)
+                result.replace(* symstruct[i], argstruct_v[i], * symstruct[i+1], argstruct_v[i+1]);
+        }
+        eval: result.eval(eopt);
         y_num = result.number();
 
         /* output sorting */
