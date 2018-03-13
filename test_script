@@ -47,24 +47,42 @@ print qalc_ufunc_del(fnum)
 
 print qalc_ufunc_new('f0',   '\x / 4 - 3')
 print qalc_ufunc_new('Sinus','sin(\x * radian)')
+print qalc_ufunc_new('plane','x*y')
 print qalc_ufunc_list(0)
 qalc_f1(x) = qalc_ufunc_exec(0, x)
 qalc_func5(x) = qalc_ufunc_exec(1, x)
 qalc_f0(x) = qalc_ufunc_exec(2, x)
 qalc_sin(x) = qalc_ufunc_exec(3, x)
+import qalc_ufunc_exec_2a(fid,a1,a2) from "gnuplot-qalc-plugin:qalc_ufunc_exec"
+qalc_plane(x,y) = qalc_ufunc_exec_2a(4, x,y)
 
 unset key
+print "Plot test benchmark, will use first 4 functions from list."
 
+print "400000 samples, 1 iteration. This will take a while."
 set samples 400000
-print "Runing available 4 functions with 400000 samples. This will take a while."
 time_start = time(0.5)
-plot qalc_f1(x) w l t 'f_1(x) = x^2/3', qalc_f0(x) w l t 'f_2(x) = x/4 - 3', qalc_func5(x) w l t 'f_3(x) = 1/x', qalc_sin(x) w l t 'f_4(x) = sin x'
-print "Completed in ", time(0.5) - time_start
+plot qalc_f1(x) t 'f_1(x) = x^2/3', qalc_f0(x) t 'f_2(x) = x/4 - 3', qalc_func5(x) t 'f_3(x) = 1/x', qalc_sin(x) t 'f_4(x) = sin x'
+print "completed in ", time(0.5) - time_start
 
+print "2000 samples, 200 iterations."
 set samples 2000
-print "Same plot, but 20 times with 2000 samples"
 time_start = time(0.5)
-plot for [iter = 1:20] qalc_f1(x) w l t 'f_1(x) = x^2/3', for [iter = 1:20] qalc_f0(x) w l t 'f_2(x) = x/4 - 3', for [iter = 1:20] qalc_func5(x) w l t 'f_3(x) = 1/x', for [iter = 1:20] qalc_sin(x) w l t 'f_4(x) = sin x'
-print "Completed in ", time(0.5) - time_start
+time_prev = time_start
+time_new = 0
+round = 0
+
+do for [round = 1:200] {
+    plot qalc_f1(x) t 'f_1(x) = x^2/3', qalc_f0(x) t 'f_2(x) = x/4 - 3', qalc_func5(x) t 'f_3(x) = 1/x', qalc_sin(x) t 'f_4(x) = sin x'
+    time_new = time(0.5)
+}
+print "completed in ", time_new - time_start
+
+print "3D surf test (for multiple arguments)."
+print "400000 samples, 1 iteration"
+set samples 400000
+time_start = time(0.5)
+splot qalc_plane(x, y) t 'f(x,y) = x * y'
+print "completed in ", time(0.5) - time_start
 
 print qalc_fini(0)
